@@ -154,7 +154,15 @@ It became the basis for Apache Parquet (file format), Apache Arrow (in-memory da
 \vspace{0.5 cm}
 \begin{columns}[T]
 \column{0.4\linewidth}
+\small Schema of primitives that can be scalar or repeated, required or optional.
+
+\vspace{0.2 cm}
 \includegraphics[width=\linewidth]{repetition_and_definition_schema.png}
+
+\vspace{0.1 cm}
+All data can be flattened with two extra fields: \mbox{$r$ and $d$.\hspace{-1 cm}}
+
+\vspace{-0.2 cm}
 
 \column{0.5\linewidth}
 \includegraphics[width=\linewidth]{repetition_and_definition_data.png}
@@ -164,34 +172,95 @@ It became the basis for Apache Parquet (file format), Apache Arrow (in-memory da
 \includegraphics[width=\linewidth]{repetition_and_definition_arrays.png}
 \end{frame}
 
+\begin{frame}{Detail on repetition level}
+\vspace{0.3 cm}
+\textcolor{darkblue}{Given:} \hfill {\tt [} {\tt [} {\tt a} {\tt b} {\tt c} {\tt ]} {\tt [} {\tt d} {\tt e} {\tt f} {\tt g} {\tt ]} {\tt ]} {\tt [} {\tt [} {\tt h} {\tt ]} {\tt [} {\tt i} {\tt j} {\tt ]} {\tt ]}
 
-%% \begin{frame}{Binary, schemaed, \underline{columnar} data}
-%% \vspace{0.5 cm}
-%% \ldots\ in other words, a database storage format.
+\textcolor{darkblue}{Data array:} \hfill {\tt \ } {\tt \ } {\tt a} {\tt b} {\tt c} {\tt \ } {\tt \ } {\tt d} {\tt e} {\tt f} {\tt g} {\tt \ } {\tt \ } {\tt \ } {\tt \ } {\tt h} {\tt \ } {\tt \ } {\tt i} {\tt j} {\tt \ } {\tt \ }
 
-%% \vspace{0.5 cm}
-%% User queries often touch only a subset of database columns, so it's important to be able to access a few columns without being slowed down by the others.
+\textcolor{darkblue}{Repetition level:} \hfill {\tt \ } {\tt \ } \textcolor{darkorange}{\tt 0} \textcolor{darkgreen}{\tt 2} \textcolor{darkgreen}{\tt 2} {\tt \ } {\tt \ } \textcolor{blue}{\tt 1} \textcolor{darkgreen}{\tt 2} \textcolor{darkgreen}{\tt 2} \textcolor{darkgreen}{\tt 2} {\tt \ } {\tt \ } {\tt \ } {\tt \ } \textcolor{darkorange}{\tt 0} {\tt \ } {\tt \ } \textcolor{blue}{\tt 1} \textcolor{darkgreen}{\tt 2} {\tt \ } {\tt \ }
 
-%% \vspace{0.3 cm}
-%% \textcolor{darkblue}{Example:} ORC file format for Hive (Hadoop as a database). Each data column is saved as a contiguous, equal-length array.
+\begin{center}
+\includegraphics[width=0.73\linewidth]{repetition_and_definition_3.png}
+\end{center}
+\end{frame}
 
-%% \begin{uncoverenv}<2>
-%% \vspace{0.5 cm}
-%% \textcolor{darkblue}{This is a specialization.} In remote procedure calls (RPC) and streaming analytics (``live'' data without storage, such as Twitter analysis and maybe online monitoring in HEP), it's advantageous to make each record contiguous.
+\begin{frame}{Detail on definition level}
+\vspace{0.2 cm}
+\begin{center}
+\includegraphics[width=0.85\linewidth]{repetition_and_definition_4.png}
 
-%% \vspace{0.3 cm}
-%% \textcolor{darkblue}{Examples:} Protobuf, Thrift, Avro.
-%% \end{uncoverenv}
-%% \end{frame}
+\vspace{0.3 cm}
+\mbox{\includegraphics[width=0.8\linewidth]{repetition_and_definition_5.png}\hspace{0.5 cm}}
+\end{center}
 
-%% \begin{frame}{\underline{Hierarchical} columnar data}
+\vspace{-0.2 cm}
+Intended for nullable data (e.g.\ missing values), but also {\it required} to describe empty lists. Can't adopt repetition levels without definition levels.
+\end{frame}
 
-%% Databases usually store flat ntuples: SQL tables whose columns are scalars: numbers, booleans, or strings.
+\begin{frame}{Comparison to ROOT's counters}
+\vspace{0.5 cm}
+\begin{columns}[t]
+\column{0.5\linewidth}
+\textcolor{darkblue}{\underline{\large Dremel/Parquet}}
 
-%% ORC stores SQL-99 features like record structures and arrays in record-major 
+\begin{itemize}
+\item Repetition/definition levels describe arbitrarily deep nesting in one pair of arrays.
 
-%% \end{frame}
+\item Maximum possible $r$, $d$ values determined by depth of nesting; can be packed.
 
+\textcolor{darkgrey}{(A depth-1 list of any length can be described by two bits {\it per element.})}
 
+\item Determining list size is a history-dependent calculation.
+
+\end{itemize}
+
+\column{0.5\linewidth}
+\textcolor{darkblue}{\underline{\large ROOT}}
+
+\begin{itemize}
+\item A separate counter branch would be needed for every level of depth.
+
+\item List length is bounded by the number of bits in the counter.
+
+\textcolor{darkgrey}{(An 8-bit counter is more tightly packed for lists of length 4 through 255.)}
+
+\item List size is readily available.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Best of both for nested lists}
+\vspace{0.5 cm}
+Can we keep counters but gain the ability to describe arbitrarily deep nesting in one array? Yes!
+
+\vspace{0.2 cm}
+\textcolor{red}{\mbox{\hspace{1 cm} $\rightarrow$} Fill the counter recursively.}
+
+\vspace{0.3 cm}
+\textcolor{darkblue}{Given:} \hfill {\tt [} {\tt [} {\tt a} {\tt b} {\tt c} {\tt ]} {\tt [} {\tt d} {\tt e} {\tt f} {\tt g} {\tt ]} {\tt ]} {\tt [} {\tt [} {\tt h} {\tt ]} {\tt [} {\tt i} {\tt j} {\tt ]} {\tt ]}
+
+\textcolor{darkblue}{Data array:} \hfill {\tt \ } {\tt \ } {\tt a} {\tt b} {\tt c} {\tt \ } {\tt \ } {\tt d} {\tt e} {\tt f} {\tt g} {\tt \ } {\tt \ } {\tt \ } {\tt \ } {\tt h} {\tt \ } {\tt \ } {\tt i} {\tt j} {\tt \ } {\tt \ }
+
+\textcolor{darkblue}{Recursive counter:} \hfill \textcolor{darkorange}{\tt 2} \textcolor{blue}{\tt 3} {\tt \ } {\tt \ } {\tt \ } {\tt \ } \textcolor{blue}{\tt 4} {\tt \ } {\tt \ } {\tt \ } {\tt \ } {\tt \ } {\tt \ } \textcolor{darkorange}{\tt 2} \textcolor{blue}{\tt 1} {\tt \ } {\tt \ } \textcolor{blue}{\tt 2} {\tt \ } {\tt \ } {\tt \ } {\tt \ }
+
+\vspace{0.3 cm}
+\begin{itemize}
+\item Lossless: we know to interpret the \textcolor{darkorange}{orange} numbers as first-level and the \textcolor{blue}{blue} numbers as second-level by reading it left to right (history dependent calculation).
+
+\item Backward compatible with ROOT's counters.
+
+\item Data array is now completely split; we can apply vectorized functions to it (e.g.\ GPU).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{}
+
+\end{frame}
+
+% the zig-zag integer trick
+
+% abstract types
+% Datashape
 
 \end{document}
