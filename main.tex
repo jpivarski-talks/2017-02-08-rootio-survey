@@ -150,6 +150,41 @@ It became the basis for Apache Parquet (file format), Apache Arrow (in-memory da
 \mbox{ } \hfill \textcolor{darkblue}{\Large Independently developed: this is xenobiology!} \hfill \mbox{ }
 \end{frame}
 
+\begin{frame}{Translation dictionary}
+\vspace{0.5 cm}
+\begin{columns}[t]
+\column{0.3\linewidth}
+\textcolor{darkblue}{\underline{\large ROOT}}
+
+\vspace{0.2 cm}
+\begin{itemize}\setlength{\itemsep}{0.2 cm}
+\item Streamer info
+\item Splitting
+\item Event cluster
+
+\vspace{2\baselineskip}
+
+\item TBuffer
+
+\vspace{\baselineskip}
+
+\item TBasket
+\end{itemize}
+
+\column{0.7\linewidth}
+\textcolor{darkblue}{\underline{\large Dremel/Parquet}}
+
+\vspace{0.2 cm}
+\begin{itemize}\setlength{\itemsep}{0.2 cm}
+\item Schema: description of all data types
+\item Shredding: breaking objects into columns
+\item Row group: group of columns (which may have different lengths) corresponding to a fixed number of rows
+\item Column: contiguous data for one scalar leaf of the schema
+\item Page: fixed-size chunk of data for one compression pass
+\end{itemize}
+\end{columns}
+\end{frame}
+
 \begin{frame}{Repetition and definition levels}
 \vspace{0.5 cm}
 \begin{columns}[T]
@@ -254,8 +289,58 @@ Can we keep counters but gain the ability to describe arbitrarily deep nesting i
 \end{itemize}
 \end{frame}
 
-\begin{frame}{}
+\begin{frame}[fragile]{A more complex example}
+\vspace{0.5 cm}
+\mbox{\hspace{-0.5 cm}Consider a schema that mixes arrays and structs:}
+\begin{columns}
+\column{0.3\linewidth}
+\scriptsize
+\begin{minted}{scala}
+class Inner(
+  a: Double,
+  b: List[Double]
+)
+class Outer(
+  x: Double,
+  y: List[Inner]
+)
+\end{minted}
 
+\column{0.5\linewidth}
+\includegraphics[width=\linewidth]{record.pdf}
+\end{columns}
+
+\vspace{0.3 cm}
+{\hspace{-0.5 cm}\begin{minipage}{\linewidth}
+{\normalsize Data like this:}
+
+\small
+\begin{minted}{python}
+Outer(x=1, y=[Inner(a=2, b=[ 3,  4]), Inner(a=5, b=[])])
+Outer(x=6, y=[Inner(a=9, b=[10, 11])                  ])
+\end{minted}
+
+\vspace{0.2 cm}
+{\normalsize Only needs a counter for each leaf with different structure:}
+
+\vspace{-0.2 cm}
+\begin{columns}[b]
+\column{0.3\linewidth}
+\small
+\begin{verbatim}
+x:   [1, 6]
+y.a: [2, 5, 9]
+y.b: [3, 4, 10, 11]
+\end{verbatim}
+
+\column{0.4\linewidth}
+\small
+\begin{verbatim}
+y.a@size: [2, 1]
+y.b@size: [2, 2, 0, 1, 2]
+\end{verbatim}
+\end{columns}
+\end{minipage}}
 \end{frame}
 
 % the zig-zag integer trick
