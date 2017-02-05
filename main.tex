@@ -82,7 +82,116 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{frame}{First page}
+\begin{frame}{The ROOT file format is many things}
+\begin{itemize}\setlength{\itemsep}{0.2 cm}
+\item \only<1,3>{Generic}\only<2>{\textcolor{blue}{\underline{Generic}}}: designed for any type of data.
+
+\item Key-value object store for histograms, lookup tables, etc.
+
+\item \only<1,3>{Big data storage}\only<2>{\textcolor{blue}{\underline{Big data storage}}}: identically structured files with large TTrees.
+
+(Byte for byte, this is by far the most common use-case!)
+
+\item \only<1,3>{Binary and schemaed}\only<2>{\textcolor{blue}{\underline{Binary and schemaed}}} (TStreamerInfo) for efficient access.
+
+\item \only<1>{Hierarchical data}\only<2,3>{\textcolor{blue}{\underline{Hierarchical data}}}, such as events containing jets containing tracks containing hits.
+
+\item Remotely accessible via the XRootD protocol.
+
+\item Record-oriented or \only<1>{columnar}\only<2,3>{\textcolor{blue}{\underline{columnar}}} with a configurable splitting level.
+
+\item And now \only<1,3>{multilingual}\only<2>{\textcolor{blue}{\underline{multilingual}}}, with jsROOT, root4j, and soon go-root.
+\end{itemize}
+
+\begin{uncoverenv}<2,3>
+\vspace{0.3 cm}
+This talk will be about file formats that share \only<2>{\textcolor{blue}{these features}}\only<3>{these features} and what we can learn from them. \only<3>{\textcolor{blue}{But especially these.}}
+\end{uncoverenv}
 \end{frame}
+
+\begin{frame}{\underline{Columnar} data}
+\vspace{0.5 cm}
+ROOT's TNtuples resemble database storage formats: user usually only touches a subset of database columns, so it's important to access a few columns without being slowed down by the others.
+
+\vspace{0.3 cm}
+\textcolor{darkblue}{Example:} ORC file format for Hive (Hadoop as a database). Each data column is saved as a contiguous, equal-length array.
+
+\vspace{0.75 cm}
+\textcolor{darkgray}{Generic, binary, non-columnar formats, such as ProtocolBuffers, Thrift, and Avro, are better suited to remote procedure calls (RPC) and streaming analytics (``live'' data without storage).}
+\end{frame}
+
+\begin{frame}{\underline{Hierarchical} data}
+\vspace{0.5 cm}
+Although SQL-99 introduced arrays and structures, the support is underwhelming.
+
+\vspace{0.3 cm}
+\textcolor{darkgray}{(For instance, how would you pick out the {\tt px}, {\tt py}, {\tt pz} of the top two muons in an event and construct an invariant mass in SQL?)}
+
+\vspace{0.3 cm}
+ORC files store arrays and structures within a column ``unsplit.'' If you want one subfield, you have to load or skip over all subfields.
+
+\begin{uncoverenv}<2>
+\vspace{0.5 cm}
+Nevertheless, the industry is moving in this direction: a Google paper (\href{https://research.google.com/pubs/pub36632.html}{\textcolor{blue}{\underline{link}}}) described a hierarchical, columnar file format, used in-house since 2006.
+
+\vspace{0.3 cm}
+It became the basis for Apache Parquet (file format), Apache Arrow (in-memory data representation), SparkSQL 2.0 optimizations, Ibis, Impala, Kudu, Drill query servers, and probably others.
+\end{uncoverenv}
+\end{frame}
+
+\begin{frame}{They didn't know about ROOT}
+\vspace{0.5 cm}
+\mbox{ } \hfill \textcolor{darkblue}{\large Dremel: Interactive Analysis of Web-Scale Datasets (2010)} \hfill \mbox{ }
+
+\vspace{0.5 cm}
+\includegraphics[width=\linewidth]{dremel.png}
+
+\vspace{0.5 cm}
+\mbox{ } \hfill \textcolor{darkblue}{\Large Independently developed: this is xenobiology!} \hfill \mbox{ }
+\end{frame}
+
+\begin{frame}{Repetition and definition levels}
+\vspace{0.5 cm}
+\begin{columns}[T]
+\column{0.4\linewidth}
+\includegraphics[width=\linewidth]{repetition_and_definition_schema.png}
+
+\column{0.5\linewidth}
+\includegraphics[width=\linewidth]{repetition_and_definition_data.png}
+\end{columns}
+
+\vspace{0.5 cm}
+\includegraphics[width=\linewidth]{repetition_and_definition_arrays.png}
+\end{frame}
+
+
+%% \begin{frame}{Binary, schemaed, \underline{columnar} data}
+%% \vspace{0.5 cm}
+%% \ldots\ in other words, a database storage format.
+
+%% \vspace{0.5 cm}
+%% User queries often touch only a subset of database columns, so it's important to be able to access a few columns without being slowed down by the others.
+
+%% \vspace{0.3 cm}
+%% \textcolor{darkblue}{Example:} ORC file format for Hive (Hadoop as a database). Each data column is saved as a contiguous, equal-length array.
+
+%% \begin{uncoverenv}<2>
+%% \vspace{0.5 cm}
+%% \textcolor{darkblue}{This is a specialization.} In remote procedure calls (RPC) and streaming analytics (``live'' data without storage, such as Twitter analysis and maybe online monitoring in HEP), it's advantageous to make each record contiguous.
+
+%% \vspace{0.3 cm}
+%% \textcolor{darkblue}{Examples:} Protobuf, Thrift, Avro.
+%% \end{uncoverenv}
+%% \end{frame}
+
+%% \begin{frame}{\underline{Hierarchical} columnar data}
+
+%% Databases usually store flat ntuples: SQL tables whose columns are scalars: numbers, booleans, or strings.
+
+%% ORC stores SQL-99 features like record structures and arrays in record-major 
+
+%% \end{frame}
+
+
 
 \end{document}
