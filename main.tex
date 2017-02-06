@@ -61,6 +61,7 @@
 }
 
 \title[2017-02-08-rootio-survey]{Survey of columnar file formats and the techniques they use}
+\subtitle{(Just some things to think about)}
 \author{Jim Pivarski}
 \institute{Princeton -- DIANA}
 \date{February 8, 2017}
@@ -295,15 +296,15 @@ Can we keep counters but gain the ability to describe arbitrarily deep nesting i
 \begin{columns}
 \column{0.3\linewidth}
 \scriptsize
-\begin{minted}{scala}
-class Inner(
-  a: Double,
-  b: List[Double]
-)
-class Outer(
-  x: Double,
-  y: List[Inner]
-)
+\begin{minted}{c++}
+class outer {
+  double x;
+  vector<inner> y;
+};
+class inner {
+  double a;
+  vector<double> b;
+};
 \end{minted}
 
 \column{0.5\linewidth}
@@ -316,8 +317,8 @@ class Outer(
 
 \small
 \begin{minted}{python}
-Outer(x=1, y=[Inner(a=2, b=[ 3,  4]), Inner(a=5, b=[])])
-Outer(x=6, y=[Inner(a=9, b=[10, 11])                  ])
+outer(x=1, y=[inner(a=2, b=[ 3,  4]), inner(a=5, b=[])])
+outer(x=6, y=[inner(a=9, b=[10, 11])                  ])
 \end{minted}
 
 \vspace{0.2 cm}
@@ -343,9 +344,86 @@ y.b@size: [2, 2, 0, 1, 2]
 \end{minipage}}
 \end{frame}
 
-% the zig-zag integer trick
+\begin{frame}{Another trick: variable length integers}
+\vspace{0.5 cm}
+\begin{columns}[t]
+\column{0.6\linewidth}
+\textcolor{darkblue}{\underline{Unsigned}}
 
-% abstract types
-% Datashape
+\small
+\vspace{0.2 cm}
+Only use as many bytes as necessary for each individual integer.
+
+\vspace{0.5 cm}
+\begin{tabular}{r l}
+number & serialization \\\hline
+0      & {\tt 0x00} \\
+1      & {\tt 0x01} \\
+127    & {\tt 0x7f} \\
+128    & {\tt 0x80, 0x01} \\
+129    & {\tt 0x81, 0x01} \\
+16,383 & {\tt 0xff, 0x7f} \\
+16,384 & {\tt 0x80, 0x80, 0x01} \\
+16,385 & {\tt 0x81, 0x80, 0x01} \\
+\end{tabular}
+
+\column{0.4\linewidth}
+\textcolor{darkblue}{\underline{Signed}}
+
+\small
+\vspace{0.2 cm}
+Same trick as unsigned, but first transform so small negative values are small byte patterns.
+
+\vspace{0.5 cm}
+\begin{tabular}{c c}
+number & transformed \\\hline
+\textcolor{white}{$-$}0      & 0 \\
+$-$1     & 1 \\
+\textcolor{white}{$-$}1      & 2 \\
+$-$2     & 3 \\
+\textcolor{white}{$-$}2      & 4 \\
+\end{tabular}
+\end{columns}
+
+\vspace{0.3 cm}
+\begin{itemize}
+\item Simplifies encoding: same code for char, short, int, and long.
+\item Smaller file sizes.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Another consideration: abstract schemas}
+\vspace{0.5 cm}
+\begin{itemize}\setlength{\itemsep}{0.3 cm}
+\item Streamer info describes C++ objects. Hard to translate into objects in other languages (e.g.\ root4j).
+
+\item<2-> Most new schema systems are language-agnostic. They define types like ``string,'' ``integer,'' ``record,'' and ``list,'' which might be represented in different ways in different languages.
+
+\item<3-> Parquet further distinguishes between ``physical schema'' (just enough information to encode/decode) and ``logical schema'' (more detail about how to represent for analysis). Examples:
+\begin{center}
+\begin{tabular}{c c}
+physical & logical \\\hline
+integer & enumeration \\
+list of pairs & hash table \\
+\end{tabular}
+\end{center}
+
+\item<4-> Scientific Python community is developing a standard called Datashape (\href{http://datashape.readthedocs.io/en/latest/overview.html}{\textcolor{blue}{\underline{link}}}) with C++ friendly features, including records, fixed and variable length arrays, and pointers.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Conclusions}
+\begin{block}{}
+With this talk, I mostly wanted to let you know what other developers are doing to solve similar problems.
+\end{block}
+
+\begin{block}{}
+If any of these could be construed as requests or recommendations, I would like to propose the use of recursive counters to split data structures at all levels of depth.
+\end{block}
+
+\begin{block}{}
+I'll have more to say about that in my next talk.
+\end{block}
+\end{frame}
 
 \end{document}
