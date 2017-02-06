@@ -61,7 +61,6 @@
 }
 
 \title[2017-02-08-rootio-survey]{Survey of columnar file formats and the techniques they use}
-\subtitle{(Just some things to think about)}
 \author{Jim Pivarski}
 \institute{Princeton -- DIANA}
 \date{February 8, 2017}
@@ -91,7 +90,7 @@
 
 \item \only<1,3>{Big data storage}\only<2>{\textcolor{blue}{\underline{Big data storage}}}: identically structured files with large TTrees.
 
-(Byte for byte, this is by far the most common use-case!)
+\textcolor{darkgray}{(Byte for byte, this is the most common use-case!)}
 
 \item \only<1,3>{Binary and schemaed}\only<2>{\textcolor{blue}{\underline{Binary and schemaed}}} (TStreamerInfo) for efficient access.
 
@@ -110,20 +109,20 @@ This talk will be about file formats that share \only<2>{\textcolor{blue}{these 
 \end{uncoverenv}
 \end{frame}
 
-\begin{frame}{\underline{Columnar} data}
+\begin{frame}{Columnar data}
 \vspace{0.5 cm}
-ROOT's TNtuples resemble database storage formats: user usually only touches a subset of database columns, so it's important to access a few columns without being slowed down by the others.
+Database storage formats resemble ROOT TNtuples: user usually only touches a few database columns, so it's important to be able to access them without being slowed down by the others.
 
 \vspace{0.3 cm}
 \textcolor{darkblue}{Example:} ORC file format for Hive (Hadoop as a database). Each data column is saved as a contiguous, equal-length array.
 
 \vspace{0.75 cm}
-\textcolor{darkgray}{Generic, binary, non-columnar formats, such as ProtocolBuffers, Thrift, and Avro, are better suited to remote procedure calls (RPC) and streaming analytics (``live'' data without storage).}
+\textcolor{darkgray}{Generic, binary, \underline{non-columnar} formats, such as ProtocolBuffers, Thrift, and Avro, are better suited to remote procedure calls (RPC) and streaming analytics (``live'' data without storage).}
 \end{frame}
 
-\begin{frame}{\underline{Hierarchical} data}
+\begin{frame}{Hierarchical data}
 \vspace{0.5 cm}
-Although SQL-99 introduced arrays and structures, the support is underwhelming.
+Although SQL-99 introduced arrays and structures (nested data), its language support is underwhelming.
 
 \vspace{0.3 cm}
 \textcolor{darkgray}{(For instance, how would you pick out the {\tt px}, {\tt py}, {\tt pz} of the top two muons in an event and construct an invariant mass in SQL?)}
@@ -136,16 +135,20 @@ ORC files store arrays and structures within a column ``unsplit.'' If you want o
 Nevertheless, the industry is moving in this direction: a Google paper (\href{https://research.google.com/pubs/pub36632.html}{\textcolor{blue}{\underline{link}}}) described a hierarchical, columnar file format, used in-house since 2006.
 
 \vspace{0.3 cm}
-It became the basis for Apache Parquet (file format), Apache Arrow (in-memory data representation), SparkSQL 2.0 optimizations, Ibis, Impala, Kudu, Drill query servers, and probably others.
+This paper is the basis for Apache Parquet (file format), Apache Arrow (in-memory data representation), SparkSQL 2.0 optimizations, Ibis, Impala, Kudu, Drill query servers, and probably others.
 \end{uncoverenv}
 \end{frame}
 
-\begin{frame}{They didn't know about ROOT}
+\begin{frame}{They didn't know about ROOT!}
 \vspace{0.5 cm}
-\mbox{ } \hfill \textcolor{darkblue}{\large Dremel: Interactive Analysis of Web-Scale Datasets (2010)} \hfill \mbox{ }
+\mbox{ } \hfill \textcolor{darkblue}{\large \underline{Dremel: Interactive Analysis of Web-Scale Datasets} (2010)} \hfill \mbox{ }
+
+\vspace{0.2 cm}
+\small
+\textcolor{darkgray}{Sergey Melnik, Andrey Gubarev, Jing Jing Long, Geoffrey Romer, Shiva Shivakumar, Matt Tolton, Theo Vassilakis}
 
 \vspace{0.5 cm}
-\includegraphics[width=\linewidth]{dremel.png}
+\fbox{\includegraphics[width=\linewidth]{dremel.png}}
 
 \vspace{0.5 cm}
 \mbox{ } \hfill \textcolor{darkblue}{\Large Independently developed: this is xenobiology!} \hfill \mbox{ }
@@ -190,7 +193,7 @@ It became the basis for Apache Parquet (file format), Apache Arrow (in-memory da
 \vspace{0.5 cm}
 \begin{columns}[T]
 \column{0.4\linewidth}
-\small Schema of primitives that can be scalar or repeated, required or optional.
+\small Schema of primitives that can be repeated, required, or optional.
 
 \vspace{0.2 cm}
 \includegraphics[width=\linewidth]{repetition_and_definition_schema.png}
@@ -243,7 +246,7 @@ Intended for nullable data (e.g.\ missing values), but also {\it required} to de
 \begin{itemize}
 \item Repetition/definition levels describe arbitrarily deep nesting in one pair of arrays.
 
-\item Maximum possible $r$, $d$ values determined by depth of nesting; can be packed.
+\item Maximum possible $r$, $d$ values determined by depth of nesting; tightly packable.
 
 \textcolor{darkgrey}{(A depth-1 list of any length can be described by two bits {\it per element.})}
 
@@ -266,7 +269,7 @@ Intended for nullable data (e.g.\ missing values), but also {\it required} to de
 \end{columns}
 \end{frame}
 
-\begin{frame}{Best of both for nested lists}
+\begin{frame}{Best of both worlds (for nested lists)}
 \vspace{0.5 cm}
 Can we keep counters but gain the ability to describe arbitrarily deep nesting in one array? Yes!
 
@@ -282,11 +285,11 @@ Can we keep counters but gain the ability to describe arbitrarily deep nesting i
 
 \vspace{0.3 cm}
 \begin{itemize}
-\item Lossless: we know to interpret the \textcolor{darkorange}{orange} numbers as first-level and the \textcolor{blue}{blue} numbers as second-level by reading it left to right (history dependent calculation).
+\item Lossless: we know to interpret the \textcolor{darkorange}{orange} numbers as first-level and the \textcolor{blue}{blue} numbers as second-level by reading it left to right and counting (history-dependent calculation).
 
 \item Backward compatible with ROOT's counters.
 
-\item Data array is now completely split; we can apply vectorized functions to it (e.g.\ GPU).
+\item Data array is now completely split; we can apply vectorized functions to it (e.g.\ GPU kernels) for any depth of nesting.
 \end{itemize}
 \end{frame}
 
@@ -352,20 +355,21 @@ y.b@size: [2, 2, 0, 1, 2]
 
 \small
 \vspace{0.2 cm}
-Only use as many bytes as necessary for each individual integer.
+Only use as many bytes as necessary for each individual integer (like UTF-8).
 
-\vspace{0.5 cm}
+\begin{center}
 \begin{tabular}{r l}
 number & serialization \\\hline
-0      & {\tt 0x00} \\
-1      & {\tt 0x01} \\
-127    & {\tt 0x7f} \\
-128    & {\tt 0x80, 0x01} \\
-129    & {\tt 0x81, 0x01} \\
-16,383 & {\tt 0xff, 0x7f} \\
-16,384 & {\tt 0x80, 0x80, 0x01} \\
-16,385 & {\tt 0x81, 0x80, 0x01} \\
+0      & {\tt 00} \\
+1      & {\tt 01} \\
+127    & {\tt 7f} \\
+128    & {\tt 80 01} \\
+129    & {\tt 81 01} \\
+16,383 & {\tt ff 7f} \\
+16,384 & {\tt 80 80 01} \\
+16,385 & {\tt 81 80 01} \\
 \end{tabular}
+\end{center}
 
 \column{0.4\linewidth}
 \textcolor{darkblue}{\underline{Signed}}
@@ -377,29 +381,29 @@ Same trick as unsigned, but first transform so small negative values are small b
 \vspace{0.5 cm}
 \begin{tabular}{c c}
 number & transformed \\\hline
-\textcolor{white}{$-$}0      & 0 \\
-$-$1     & 1 \\
-\textcolor{white}{$-$}1      & 2 \\
-$-$2     & 3 \\
-\textcolor{white}{$-$}2      & 4 \\
+\textcolor{white}{$-$}0      & {\tt 0} \\
+                  $-$1       & {\tt 1} \\
+\textcolor{white}{$-$}1      & {\tt 2} \\
+                  $-$2       & {\tt 3} \\
+\textcolor{white}{$-$}2      & {\tt 4} \\
 \end{tabular}
 \end{columns}
 
 \vspace{0.3 cm}
 \begin{itemize}
 \item Simplifies encoding: same code for char, short, int, and long.
-\item Smaller file sizes.
+\item Smaller file sizes. \textcolor{darkgray}{(Inserts the assumption that small integers are common, rather than making the compression algorithm discover that.)}
 \end{itemize}
 \end{frame}
 
 \begin{frame}{Another consideration: abstract schemas}
 \vspace{0.5 cm}
 \begin{itemize}\setlength{\itemsep}{0.3 cm}
-\item Streamer info describes C++ objects. Hard to translate into objects in other languages (e.g.\ root4j).
+\item ROOT's streamer info describes C++ objects. Hard to translate into objects in other languages (e.g.\ root4j).
 
 \item<2-> Most new schema systems are language-agnostic. They define types like ``string,'' ``integer,'' ``record,'' and ``list,'' which might be represented in different ways in different languages.
 
-\item<3-> Parquet further distinguishes between ``physical schema'' (just enough information to encode/decode) and ``logical schema'' (more detail about how to represent for analysis). Examples:
+\item<3-> Parquet further distinguishes between ``physical schema'' (just enough information to encode/decode) and ``logical schema'' (more detail about how to represent for analysis).
 \begin{center}
 \begin{tabular}{c c}
 physical & logical \\\hline
