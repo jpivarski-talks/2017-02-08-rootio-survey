@@ -176,7 +176,7 @@ This paper is the basis for Apache Parquet (file format), Apache Arrow (in-memor
 \end{itemize}
 
 \column{0.7\linewidth}
-\textcolor{darkblue}{\underline{\large Dremel/Parquet}}
+\textcolor{darkblue}{\underline{\large Google Dremel and Apache Parquet}}
 
 \vspace{0.2 cm}
 \begin{itemize}\setlength{\itemsep}{0.2 cm}
@@ -269,7 +269,7 @@ Intended for nullable data (e.g.\ missing values), but also {\it required} to de
 \end{columns}
 \end{frame}
 
-\begin{frame}{Best of both worlds (for nested lists)}
+\begin{frame}{Best of both worlds}
 \vspace{0.5 cm}
 Can we keep counters but gain the ability to describe arbitrarily deep nesting in one array? Yes!
 
@@ -376,7 +376,7 @@ number & serialization \\\hline
 
 \small
 \vspace{0.2 cm}
-Same trick as unsigned, but first transform so small negative values are small byte patterns.
+Same trick as unsigned, but first transform so negative values near zero are short byte patterns.
 
 \vspace{0.5 cm}
 \begin{tabular}{c c}
@@ -401,7 +401,7 @@ number & transformed \\\hline
 \begin{itemize}\setlength{\itemsep}{0.3 cm}
 \item ROOT's streamer info describes C++ objects. Hard to translate into objects in other languages (e.g.\ root4j).
 
-\item<2-> Most new schema systems are language-agnostic. They define types like ``string,'' ``integer,'' ``record,'' and ``list,'' which might be represented in different ways in different languages.
+\item<2-> Many new schema systems are language-agnostic. They define types like ``string,'' ``integer,'' ``record,'' and ``list,'' which might be represented in different ways in different languages.
 
 \item<3-> Parquet further distinguishes between ``physical schema'' (just enough information to encode/decode) and ``logical schema'' (more detail about how to represent for analysis).
 \begin{center}
@@ -422,7 +422,7 @@ With this talk, I mostly wanted to let you know what other developers are doing 
 \end{block}
 
 \begin{block}{}
-If any of these could be construed as requests or recommendations, I would like to propose the use of recursive counters to split data structures at all levels of depth.
+If any of these could be construed as requests or recommendations, I'd like to find out if there's interest in using recursive counters to split data structures down to all levels of depth.
 \end{block}
 
 \begin{block}{}
